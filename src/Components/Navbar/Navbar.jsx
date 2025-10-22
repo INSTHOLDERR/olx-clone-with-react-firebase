@@ -5,19 +5,20 @@ import arrow from '../../assets/arrow-down.svg';
 import searchWt from '../../assets/search.svg';
 import addBtn from '../../assets/addButton.png';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../Firebase/Firebase';
+import { auth, fireStore } from '../Firebase/Firebase';
 import { signOut } from 'firebase/auth';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import Card from '../Card/Card'; // Import Card component
 
+    
 const Navbar = ({ toggleModal, toggleModalSell, setSelectedCategory }) => {
+
   const [user] = useAuthState(auth);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  const handleLogout = async () => {
-    await signOut(auth);
-    setDropdownOpen(false);
-  };
+  const [userCards, setUserCards] = useState([]);
+  const [selectedDropdown, setSelectedDropdown] = useState(""); // "ads" | "wishlist"
 
   const categories = [
     { name: 'All categories', value: '' },
@@ -30,11 +31,39 @@ const Navbar = ({ toggleModal, toggleModalSell, setSelectedCategory }) => {
     { name: 'For rent: Houses & Apartments', value: 'Houses & Apartments' },
   ];
 
+  const handleLogout = async () => {
+    await signOut(auth);
+    setDropdownOpen(false);
+    setSelectedDropdown("");
+    setUserCards([]);
+  };
+
+  const fetchUserAds = async (uid) => {
+    try {
+      const q = query(collection(fireStore, "products"), where("userId", "==", uid));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  };
+
+  const fetchUserWishlist = async (uid) => {
+    try {
+      const q = query(collection(fireStore, "wishlist"), where("userId", "==", uid));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  };
+
   return (
     <div>
       {/* Navbar */}
       <nav className="fixed z-50 flex items-center w-full p-2 pl-3 pr-3 overflow-auto border-b-4 border-solid shadow-md bg-slate-100 border-b-white">
-        {/* Logo */}
         <img src={logo} alt="" className="w-12" />
 
         {/* Location Search */}
@@ -89,10 +118,35 @@ const Navbar = ({ toggleModal, toggleModalSell, setSelectedCategory }) => {
 
             {dropdownOpen &&
               createPortal(
-                <ul className="dropdown">
-                  <li>My Ads</li>
-                  <li>My Wishlist</li>
-                  <li onClick={handleLogout}>Logout</li>
+                <ul className="absolute z-50 p-2 bg-white rounded-md shadow-lg dropdown w-44 top-14 right-5">
+                  <li
+                    className="p-2 cursor-pointer hover:bg-gray-100"
+                    onClick={async () => {
+                      setSelectedDropdown("ads");
+                      setDropdownOpen(false);
+                      const ads = await fetchUserAds(user.uid);
+                      setUserCards(ads);
+                    }}
+                  >
+                    My Ads
+                  </li>
+                  <li
+                    className="p-2 cursor-pointer hover:bg-gray-100"
+                    onClick={async () => {
+                      setSelectedDropdown("wishlist");
+                      setDropdownOpen(false);
+                      const wishlist = await fetchUserWishlist(user.uid);
+                      setUserCards(wishlist);
+                    }}
+                  >
+                    My Wishlist
+                  </li>
+                  <li
+                    className="p-2 text-red-600 cursor-pointer hover:bg-gray-100"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </li>
                 </ul>,
                 document.body
               )}
@@ -122,6 +176,21 @@ const Navbar = ({ toggleModal, toggleModalSell, setSelectedCategory }) => {
           ))}
         </ul>
       </div>
+
+      {/* Display User Ads / Wishlist using Card component */}
+      {selectedDropdown && (
+        <div className="p-4 mt-6">
+          <h2 className="mb-4 text-xl font-bold">
+            {selectedDropdown === "ads" ? "My Ads" : "My Wishlist"}
+          </h2>
+
+          {userCards.length > 0 ? (
+            <Card items={userCards} /> // Use Card component here
+          ) : (
+            <p className="text-gray-500">No items found.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 };

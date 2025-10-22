@@ -1,16 +1,20 @@
-import { Route, Routes } from 'react-router-dom'
-import Home from './Components/Pages/Home'
-import Details from './Components/Details/Details'
+import React, { Suspense, lazy } from 'react';
+import { Route, Routes } from 'react-router-dom';
+const Home = lazy(() => import('./Components/Pages/Home'));
+const Details = lazy(() => import('./Components/Details/Details'));
 
 const App = () => {
   return (
-   <>
-   <Routes>
-    <Route  path='/' element={<Home/>}/>
-    <Route  path='/details' element={<Details/>}/>
-   </Routes>
-   </>
-  )
-}
+    <>
+      
+     <Suspense fallback={<div className="mt-10 text-center">Loading Page...</div>}>
+        <Routes>
+          <Route path='/' element={<Home />} />
+          <Route path='/details' element={<Details />} />
+        </Routes>
+      </Suspense>
+    </>
+  );
+};
 
-export default App
+export default App;
