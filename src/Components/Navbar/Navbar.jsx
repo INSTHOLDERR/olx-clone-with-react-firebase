@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import Card from '../Card/Card'; // Import Card component
-
+import { fetchFromFirestore } from '../Firebase/Firebase';
     
 const Navbar = ({ toggleModal, toggleModalSell, setSelectedCategory }) => {
 
@@ -49,16 +49,31 @@ const Navbar = ({ toggleModal, toggleModalSell, setSelectedCategory }) => {
     }
   };
 
-  const fetchUserWishlist = async (uid) => {
-    try {
-      const q = query(collection(fireStore, "wishlist"), where("userId", "==", uid));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-      console.error(error);
-      return [];
-    }
-  };
+const fetchUserWishlist = async (uid) => {
+  try {
+    // Fetch all products (existing items)
+    const products = await fetchFromFirestore(); // [{id, title, ...}, ...]
+
+    // Fetch wishlist collection
+    const q = collection(fireStore, "wishlist");
+    const querySnapshot = await getDocs(q);
+
+    // Map wishlist docs
+    const wishlistItems = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Filter wishlist items for current user and existing products
+    const filteredWishlist = wishlistItems.filter(item => {
+      const userAdded = item.userIds?.includes(uid); // User has added
+      const existsInProducts = products.some(prod => prod.id === item.itemId); // Product exists
+      return userAdded && existsInProducts;
+    });
+
+    return filteredWishlist;
+  } catch (error) {
+    console.error("Error fetching wishlist:", error);
+    return [];
+  }
+};
 
   return (
     <div>
@@ -166,13 +181,17 @@ const Navbar = ({ toggleModal, toggleModalSell, setSelectedCategory }) => {
       <div className="relative z-0 flex w-full p-2 pt-20 pl-10 pr-10 overflow-auto shadow-md sm:pl-44 md:pr-44 sub-lists">
         <ul className="flex items-center justify-start w-full gap-4 list-none">
           {categories.map((cat, index) => (
-            <li
-              key={index}
-              className="font-semibold cursor-pointer hover:text-teal-500"
-              onClick={() => setSelectedCategory(cat.value)}
-            >
-              {cat.name}
-            </li>
+           <li
+  key={index}
+  className="font-semibold cursor-pointer hover:text-teal-500"
+  onClick={() => {
+    setSelectedCategory(cat.value);
+    setSelectedDropdown(""); // <- close ads/wishlist
+  }}
+>
+  {cat.name}
+</li>
+
           ))}
         </ul>
       </div>

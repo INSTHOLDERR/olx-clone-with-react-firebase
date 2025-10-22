@@ -44,25 +44,34 @@ const Home = () => {
 
   return (
     <div>
-      <Navbar
-        toggleModal={toggleModal}
-        toggleModalSell={toggleModalSell}
-        setSelectedCategory={setSelectedCategory}
-        selectedDropdown={selectedDropdown}
-        setSelectedDropdown={setSelectedDropdown}
-      />
+   <Navbar
+  toggleModal={toggleModal}
+  toggleModalSell={toggleModalSell}
+  setSelectedCategory={(cat) => {
+    setSelectedCategory(cat);        // Filter by category
+    setSelectedDropdown("");         // Close any dropdown like My Ads/Wishlist
+    setSelectedItem(null);           // Close Details view if open
+  }}
+  selectedDropdown={selectedDropdown}
+  setSelectedDropdown={setSelectedDropdown}
+/>
+
 
       <Login toggleModal={toggleModal} status={openModal} />
       <Sell setItems={itemsCtx.setItems} toggleModalSell={toggleModalSell} status={openModalSell} />
 
       {/* Show Details or Card list */}
-      {!selectedDropdown && (
-        selectedItem ? (
-          <Details item={selectedItem} onBack={handleBack} />
-        ) : (
-          <Card items={filteredItems || []} title="Products" onCardClick={handleCardClick} />
-        )
-      )}
+     {!selectedDropdown && (
+  selectedItem ? (
+    <Details item={selectedItem} onBack={handleBack} />
+  ) : (
+    <Card 
+      items={filteredItems || []} 
+      title={selectedCategory || "Products"} 
+      onCardClick={handleCardClick} 
+    />
+  )
+)}
 
       <Footer />
     </div>

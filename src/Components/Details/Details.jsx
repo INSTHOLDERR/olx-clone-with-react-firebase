@@ -319,7 +319,7 @@ const Details = ({ item: initialItem, onBack }) => {
       </div>
 
       {/* Recommended */}
-   {/* Recommended */}
+ 
 {recommended.length > 0 && (
   <div className="p-5 mt-10">
     <h2 className="mb-4 text-2xl font-semibold text-teal-800">Recommended for you</h2>
