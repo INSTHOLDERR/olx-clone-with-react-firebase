@@ -5,16 +5,22 @@ import arrow from '../../assets/arrow-down.svg';
 import searchWt from '../../assets/search.svg';
 import addBtn from '../../assets/addButton.png';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, fireStore } from '../Firebase/Firebase';
+import { auth, fireStore, fetchFromFirestore } from '../Firebase/Firebase';
 import { signOut } from 'firebase/auth';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import Card from '../Card/Card'; // Import Card component
-import { fetchFromFirestore } from '../Firebase/Firebase';
-    
-const Navbar = ({ toggleModal, toggleModalSell, setSelectedCategory }) => {
+import Card from '../Card/Card';
 
+const Navbar = ({
+  toggleModal,
+  toggleModalSell,
+  setSelectedCategory,
+  searchQuery,
+  setSearchQuery,
+  locationQuery,
+  setLocationQuery
+}) => {
   const [user] = useAuthState(auth);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userCards, setUserCards] = useState([]);
@@ -49,31 +55,25 @@ const Navbar = ({ toggleModal, toggleModalSell, setSelectedCategory }) => {
     }
   };
 
-const fetchUserWishlist = async (uid) => {
-  try {
-    // Fetch all products (existing items)
-    const products = await fetchFromFirestore(); // [{id, title, ...}, ...]
+  const fetchUserWishlist = async (uid) => {
+    try {
+      const products = await fetchFromFirestore();
+      const q = collection(fireStore, "wishlist");
+      const querySnapshot = await getDocs(q);
+      const wishlistItems = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // Fetch wishlist collection
-    const q = collection(fireStore, "wishlist");
-    const querySnapshot = await getDocs(q);
+      const filteredWishlist = wishlistItems.filter(item => {
+        const userAdded = item.userIds?.includes(uid);
+        const existsInProducts = products.some(prod => prod.id === item.itemId);
+        return userAdded && existsInProducts;
+      });
 
-    // Map wishlist docs
-    const wishlistItems = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    // Filter wishlist items for current user and existing products
-    const filteredWishlist = wishlistItems.filter(item => {
-      const userAdded = item.userIds?.includes(uid); // User has added
-      const existsInProducts = products.some(prod => prod.id === item.itemId); // Product exists
-      return userAdded && existsInProducts;
-    });
-
-    return filteredWishlist;
-  } catch (error) {
-    console.error("Error fetching wishlist:", error);
-    return [];
-  }
-};
+      return filteredWishlist;
+    } catch (error) {
+      console.error("Error fetching wishlist:", error);
+      return [];
+    }
+  };
 
   return (
     <div>
@@ -88,6 +88,8 @@ const fetchUserWishlist = async (uid) => {
             placeholder="Search city, area, or locality..."
             className="w-[50px] sm:w-[150px] md:w-[250px] lg:w-[270px] p-3 pl-8 pr-8 border-black border-2 rounded-md placeholder:text-ellipsis focus:outline-none focus:border-teal-300"
             type="text"
+            value={locationQuery}
+            onChange={(e) => setLocationQuery(e.target.value)}
           />
           <img src={arrow} alt="" className="absolute w-5 cursor-pointer top-4 right-3" />
         </div>
@@ -98,6 +100,8 @@ const fetchUserWishlist = async (uid) => {
             placeholder="Find Cars, Mobile Phones, and More..."
             className="w-full p-3 border-2 border-black rounded-md placeholder:text-ellipsis focus:outline-none focus:border-teal-300"
             type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
           <div
             style={{ backgroundColor: '#002f34' }}
@@ -177,34 +181,32 @@ const fetchUserWishlist = async (uid) => {
         />
       </nav>
 
-      {/* Sub-lists / Categories */}
+      {/* Categories */}
       <div className="relative z-0 flex w-full p-2 pt-20 pl-10 pr-10 overflow-auto shadow-md sm:pl-44 md:pr-44 sub-lists">
         <ul className="flex items-center justify-start w-full gap-4 list-none">
           {categories.map((cat, index) => (
-           <li
-  key={index}
-  className="font-semibold cursor-pointer hover:text-teal-500"
-  onClick={() => {
-    setSelectedCategory(cat.value);
-    setSelectedDropdown(""); // <- close ads/wishlist
-  }}
->
-  {cat.name}
-</li>
-
+            <li
+              key={index}
+              className="font-semibold cursor-pointer hover:text-teal-500"
+              onClick={() => {
+                setSelectedCategory(cat.value);
+                setSelectedDropdown(""); // close ads/wishlist when category clicked
+              }}
+            >
+              {cat.name}
+            </li>
           ))}
         </ul>
       </div>
 
-      {/* Display User Ads / Wishlist using Card component */}
+      {/* Display User Ads / Wishlist */}
       {selectedDropdown && (
         <div className="p-4 mt-6">
           <h2 className="mb-4 text-xl font-bold">
             {selectedDropdown === "ads" ? "My Ads" : "My Wishlist"}
           </h2>
-
           {userCards.length > 0 ? (
-            <Card items={userCards} /> // Use Card component here
+            <Card items={userCards} />
           ) : (
             <p className="text-gray-500">No items found.</p>
           )}

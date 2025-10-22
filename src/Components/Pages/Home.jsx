@@ -13,7 +13,8 @@ const Home = () => {
   const [openModalSell, setModalSell] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedDropdown, setSelectedDropdown] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [locationQuery, setLocationQuery] = useState('');
 
   const itemsCtx = ItemsContext();
 
@@ -29,49 +30,46 @@ const Home = () => {
     getItems();
   }, []);
 
-  // Filter items by category
-  const filteredItems = selectedCategory
-    ? itemsCtx.items.filter(item => item.category === selectedCategory)
-    : itemsCtx.items;
+  // Filter items by category, search, and location
+  const filteredItems = itemsCtx.items?.filter(item => {
+    const matchCategory = selectedCategory ? item.category === selectedCategory : true;
+    const matchSearch = searchQuery
+      ? item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.category.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
+    const matchLocation = locationQuery
+      ? item.location?.toLowerCase().includes(locationQuery.toLowerCase())
+      : true;
+    return matchCategory && matchSearch && matchLocation;
+  }) || [];
 
   // Handle card click
-  const handleCardClick = (item) => {
-    setSelectedItem(item);
-  };
+  const handleCardClick = (item) => setSelectedItem(item);
 
   // Back button
   const handleBack = () => setSelectedItem(null);
 
   return (
     <div>
-   <Navbar
-  toggleModal={toggleModal}
-  toggleModalSell={toggleModalSell}
-  setSelectedCategory={(cat) => {
-    setSelectedCategory(cat);        // Filter by category
-    setSelectedDropdown("");         // Close any dropdown like My Ads/Wishlist
-    setSelectedItem(null);           // Close Details view if open
-  }}
-  selectedDropdown={selectedDropdown}
-  setSelectedDropdown={setSelectedDropdown}
-/>
-
+      <Navbar
+        toggleModal={toggleModal}
+        toggleModalSell={toggleModalSell}
+        setSelectedCategory={setSelectedCategory}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        locationQuery={locationQuery}
+        setLocationQuery={setLocationQuery}
+      />
 
       <Login toggleModal={toggleModal} status={openModal} />
       <Sell setItems={itemsCtx.setItems} toggleModalSell={toggleModalSell} status={openModalSell} />
 
       {/* Show Details or Card list */}
-     {!selectedDropdown && (
-  selectedItem ? (
-    <Details item={selectedItem} onBack={handleBack} />
-  ) : (
-    <Card 
-      items={filteredItems || []} 
-      title={selectedCategory || "Products"} 
-      onCardClick={handleCardClick} 
-    />
-  )
-)}
+      {!selectedItem ? (
+        <Card items={filteredItems} title="Products" onCardClick={handleCardClick} />
+      ) : (
+        <Details item={selectedItem} onBack={handleBack} />
+      )}
 
       <Footer />
     </div>
