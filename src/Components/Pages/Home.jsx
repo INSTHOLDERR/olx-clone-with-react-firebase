@@ -15,20 +15,24 @@ const Home = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [locationQuery, setLocationQuery] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0); // New state to trigger re-fetch
 
   const itemsCtx = ItemsContext();
 
   const toggleModal = () => setModal(!openModal);
   const toggleModalSell = () => setModalSell(!openModalSell);
 
-  // Fetch items from Firestore
+  // Fetch items from Firestore whenever refreshKey changes
   useEffect(() => {
     const getItems = async () => {
       const datas = await fetchFromFirestore();
       itemsCtx?.setItems(datas);
     };
     getItems();
-  }, []);
+  }, [refreshKey]); // <- added dependency
+
+  // Trigger refresh from child components (e.g., after Sell or Delete)
+  const refreshItems = () => setRefreshKey(prev => prev + 1);
 
   // Filter items by category, search, and location
   const filteredItems = itemsCtx.items?.filter(item => {
@@ -62,13 +66,18 @@ const Home = () => {
       />
 
       <Login toggleModal={toggleModal} status={openModal} />
-      <Sell setItems={itemsCtx.setItems} toggleModalSell={toggleModalSell} status={openModalSell} />
+      <Sell
+        setItems={itemsCtx.setItems}
+        toggleModalSell={toggleModalSell}
+        status={openModalSell}
+        onSuccess={refreshItems} // <- trigger refresh after adding a new item
+      />
 
       {/* Show Details or Card list */}
       {!selectedItem ? (
         <Card items={filteredItems} title="Products" onCardClick={handleCardClick} />
       ) : (
-        <Details item={selectedItem} onBack={handleBack} />
+        <Details item={selectedItem} onBack={handleBack} onDelete={refreshItems} /> // <- trigger refresh after deleting
       )}
 
       <Footer />

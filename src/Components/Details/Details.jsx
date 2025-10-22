@@ -92,10 +92,18 @@ const Details = ({ item: initialItem, onBack }) => {
   // Remove Ad
   const handleRemoveAd = async () => {
     if (!isOwner) return;
+    // const confirmDelete = window.confirm("Are you sure you want to remove this ad?");
+    // if (!confirmDelete) return;
+
     try {
       await deleteDoc(doc(fireStore, "products", item.id));
       toast.success("Ad removed successfully!");
-      onBack(true);
+
+      // Give toast time to show before navigating back
+      setTimeout(() => {
+        onBack(true);
+        window.location.reload(); // ✅ force reload so new list appears
+      }, 1000);
     } catch (err) {
       console.error(err);
       toast.error("Failed to remove ad.");

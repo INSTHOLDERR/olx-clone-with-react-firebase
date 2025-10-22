@@ -37,6 +37,29 @@ const Sell = ({ toggleModalSell, status, setItems }) => {
 
   const handleImageUpload = (event) => {
     if (event.target.files) setImage(event.target.files[0]);
+
+  //   const file = event.target.files[0];
+  // if (!file) return;
+
+  // // Limit file size (2MB here)
+  // const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+
+  // if (file.size > maxSize) {
+  //   toast.error("Image size too large! Please upload below 2MB.");
+  //   event.target.value = ""; // reset file input
+  //   return;
+  // }
+
+  // // Limit file types
+  // const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+  // if (!allowedTypes.includes(file.type)) {
+  //   toast.error("Only JPG, PNG, or WEBP formats are allowed!");
+  //   event.target.value = "";
+  //   return;
+  // }
+
+  // setImage(file);
+  // toast.success("Image uploaded successfully!");
   };
 
   // ✅ Handle Price Validation

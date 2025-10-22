@@ -91,7 +91,7 @@ const Navbar = ({
             value={locationQuery}
             onChange={(e) => setLocationQuery(e.target.value)}
           />
-          <img src={arrow} alt="" className="absolute w-5 cursor-pointer top-4 right-3" />
+          {/* <img src={arrow} alt="" className="absolute w-5 cursor-pointer top-4 right-3" /> */}
         </div>
 
         {/* Main Search */}
