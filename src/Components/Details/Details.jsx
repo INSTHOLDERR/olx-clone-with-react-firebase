@@ -42,7 +42,7 @@ const Details = ({ item: initialItem, onBack }) => {
   const [isPriceValid, setIsPriceValid] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
 
-  // Refetch single item
+  // Fetch single item
   const fetchItem = async (itemId) => {
     try {
       const docRef = doc(fireStore, "products", itemId);
@@ -53,29 +53,12 @@ const Details = ({ item: initialItem, onBack }) => {
     }
   };
 
-  // Toggle Edit Modal
-  const toggleEditModal = () => {
-    if (!editModal && item) {
-      setEditData({
-        title: item.title || "",
-        description: item.description || "",
-        category: item.category || "",
-        price: item.price?.toString() || "",
-        imageFile: null,
-      });
-      setLocationInput(item.location || "");
-      setImagePreview(item.imageUrl || null);
-      setIsPriceValid(/^\d*$/.test(item.price?.toString() || ""));
-    }
-    setEditModal(!editModal);
-  };
-
-  // Set ownership
+  // Ownership
   useEffect(() => {
     setIsOwner(user && user.uid === item?.userId);
   }, [user, item]);
 
-  // Fetch recommended items
+  // Recommended items
   useEffect(() => {
     const fetchRecommended = async () => {
       if (!item?.category) return;
@@ -92,7 +75,7 @@ const Details = ({ item: initialItem, onBack }) => {
     fetchRecommended();
   }, [item]);
 
-  // Check wishlist
+  // Wishlist check
   useEffect(() => {
     const checkWishlist = async () => {
       if (!user || !item) return;
@@ -112,7 +95,7 @@ const Details = ({ item: initialItem, onBack }) => {
     try {
       await deleteDoc(doc(fireStore, "products", item.id));
       toast.success("Ad removed successfully!");
-      onBack();
+      onBack(true);
     } catch (err) {
       console.error(err);
       toast.error("Failed to remove ad.");
@@ -123,11 +106,9 @@ const Details = ({ item: initialItem, onBack }) => {
   const handleWishlistToggle = async () => {
     if (!user || !item) return;
     const wishlistRef = collection(fireStore, "wishlist");
-
     try {
       const q = query(wishlistRef, where("itemId", "==", item.id));
       const snapshot = await getDocs(q);
-
       if (snapshot.empty) {
         await addDoc(wishlistRef, {
           itemId: item.id,
@@ -145,7 +126,6 @@ const Details = ({ item: initialItem, onBack }) => {
         const docRef = snapshot.docs[0].ref;
         const docData = snapshot.docs[0].data();
         let updatedUserIds = docData.userIds || [];
-
         if (!updatedUserIds.includes(user.uid)) {
           updatedUserIds.push(user.uid);
           await updateDoc(docRef, { userIds: updatedUserIds });
@@ -162,6 +142,23 @@ const Details = ({ item: initialItem, onBack }) => {
       console.error(err);
       toast.error("Failed to update wishlist");
     }
+  };
+
+  // Edit modal toggle
+  const toggleEditModal = () => {
+    if (!editModal && item) {
+      setEditData({
+        title: item.title || "",
+        description: item.description || "",
+        category: item.category || "",
+        price: item.price?.toString() || "",
+        imageFile: null,
+      });
+      setLocationInput(item.location || "");
+      setImagePreview(item.imageUrl || null);
+      setIsPriceValid(/^\d*$/.test(item.price?.toString() || ""));
+    }
+    setEditModal(!editModal);
   };
 
   // Edit submit
@@ -234,14 +231,20 @@ const Details = ({ item: initialItem, onBack }) => {
     setSuggestions([]);
   };
 
+  // Recommended item click
+  const handleRecommendedClick = async (clickedItem) => {
+    await fetchItem(clickedItem.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
 
-      {/* Back Button */}
+      {/* Back */}
       <div className="p-5">
         <button
-          onClick={onBack}
+          onClick={() => onBack(false)}
           className="px-4 py-2 text-white bg-teal-600 rounded hover:bg-teal-700"
         >
           ← Back to Listings
@@ -267,7 +270,6 @@ const Details = ({ item: initialItem, onBack }) => {
           <p className="text-sm text-gray-500">Seller: {item?.userName}</p>
           <p className="text-sm text-gray-400">Posted: {item?.createdAt}</p>
 
-          {/* Buttons */}
           {user && (
             <div className="flex gap-4 mt-4">
               {isOwner && (
@@ -317,11 +319,17 @@ const Details = ({ item: initialItem, onBack }) => {
       </div>
 
       {/* Recommended */}
-      {recommended.length > 0 && (
-        <div className="p-5 mt-10">
-          <Card items={recommended} title="Recommended for you" />
-        </div>
-      )}
+   {/* Recommended */}
+{recommended.length > 0 && (
+  <div className="p-5 mt-10">
+    <h2 className="mb-4 text-2xl font-semibold text-teal-800">Recommended for you</h2>
+    <Card
+      items={recommended}
+      onCardClick={handleRecommendedClick}
+    />
+  </div>
+)}
+
 
       {/* Edit Modal */}
       <Modal show={editModal} size="md" popup={true} position="center" onClick={toggleEditModal}>
@@ -329,7 +337,6 @@ const Details = ({ item: initialItem, onBack }) => {
           <div className="p-6 pb-8">
             <p className="mb-3 text-lg font-bold">Edit Item</p>
             <form onSubmit={handleEditSubmit}>
-              {/* Title */}
               <input
                 value={editData.title}
                 onChange={(e) => setEditData({ ...editData, title: e.target.value })}
@@ -337,7 +344,6 @@ const Details = ({ item: initialItem, onBack }) => {
                 className="w-full p-3 mb-2 border-2 border-black rounded-md focus:outline-none focus:border-teal-300"
                 required
               />
-              {/* Category */}
               <select
                 value={editData.category}
                 onChange={(e) => setEditData({ ...editData, category: e.target.value })}
@@ -349,7 +355,6 @@ const Details = ({ item: initialItem, onBack }) => {
                   <option key={idx} value={cat}>{cat}</option>
                 ))}
               </select>
-              {/* Price */}
               <div className="relative mb-2">
                 <input
                   value={editData.price}
@@ -364,7 +369,6 @@ const Details = ({ item: initialItem, onBack }) => {
                   </span>
                 )}
               </div>
-              {/* Description */}
               <textarea
                 value={editData.description}
                 onChange={(e) => setEditData({ ...editData, description: e.target.value })}
@@ -372,7 +376,6 @@ const Details = ({ item: initialItem, onBack }) => {
                 className="w-full p-3 mb-2 border-2 border-black rounded-md focus:outline-none focus:border-teal-300"
                 required
               />
-              {/* Location */}
               <div className="relative mb-3">
                 <input
                   value={locationInput}
@@ -398,10 +401,9 @@ const Details = ({ item: initialItem, onBack }) => {
                   </ul>
                 )}
               </div>
-              {/* Image */}
               <div className="relative w-full pt-2 mb-4">
                 {imagePreview ? (
-                  <div className="relative flex justify-center w-full h-40 overflow-hidden border-2 border-black border-solid rounded-md sm:h-60">
+                  <div className="relative flex justify-center w-full h-40 overflow-hidden border-2 border-black rounded-md sm:h-60">
                     <img
                       className="object-contain"
                       src={editData.imageFile ? URL.createObjectURL(editData.imageFile) : imagePreview}
@@ -427,7 +429,6 @@ const Details = ({ item: initialItem, onBack }) => {
                   />
                 )}
               </div>
-              {/* Submit */}
               <button
                 className="w-full p-3 text-white rounded-lg"
                 style={{ backgroundColor: "#002f34" }}
